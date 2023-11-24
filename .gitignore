@@ -1,0 +1,5 @@
+app/datasets/*
+env
+**/__pycache__
+**/static/*
+**/datasets/*

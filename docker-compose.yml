@@ -1,0 +1,65 @@
+version: '3.7'
+services:
+  app:
+    image: mahoufarm-map-processing:lastest
+    build: .
+    ports:
+      - 8000:80
+    env_file:
+      - .env
+    volumes:
+      - "./app:/app"
+      - "./start.sh:/start.sh"
+    depends_on:
+      - db
+
+    command: bash /start.sh
+
+  db:
+    image: postgres:12
+    volumes:
+      - app-db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    
+  redis:
+    ports:
+      - "6379:6379"
+    image: "redis:alpine"
+
+  celery_worker:
+    container_name: celery_worker
+    build: .
+    command: bash /start-worker.sh
+    # command: celery -A app.worker.celery_app worker -l info
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app
+      - ./start-worker.sh:/start-worker.sh
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL? Not set}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND? Not set}
+    depends_on:
+      - app
+      - redis
+
+  flower:
+    container_name: flower
+    build: .
+    command: celery -A app.worker flower --port=80 --basic-auth=admin:admin
+    env_file:
+      - .env
+    ports:
+      - 5556:80
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL? Not set}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND? Not set}
+    depends_on:
+      - app
+      - redis
+      - celery_worker
+volumes:
+  app-db-data:
