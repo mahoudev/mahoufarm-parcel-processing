@@ -52,6 +52,8 @@ services:
       - .env
     ports:
       - 5555:80
+    volumes:
+      - ./app:/app
     environment:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL? Not set}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND? Not set}
