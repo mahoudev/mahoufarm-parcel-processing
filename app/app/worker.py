@@ -24,26 +24,63 @@ from pydantic import BaseModel
 from celery.states import SUCCESS
 from typing import Optional
 import time, json, requests
+import requests
 
-from app.utils import pipeline_ndvi
+from app.utils import pipeline_ndvi, pipeline_ndmi
 from app import schemas, crud
 from app.db.session import SessionLocal
 
-def notify_failed(process_id: int, exception = None):
+def notify_failed(internal_proc_id: int, external_proc_id: int, webhook_url: str, exception = None):
     db = SessionLocal()
-    crud.processing_req.set_failed(db, process_id, error_msg=str(exception))
+    crud.processing_req.set_failed(db, internal_proc_id, error_msg=str(exception))
     db.close()
+    requests.post(
+        url = webhook_url,
+        data = json.dumps({
+            'status': schemas.processing_request.ProcessingStatus.failed.value,
+            'external_id': external_proc_id,
+            'id': internal_proc_id,
+            'reason': str(exception)
+        }),
+        headers= {
+            'Content-Type': 'application/json'
+        }
+    )
 
-def notify_success(process_id: int, result: schemas.processing_request.NDVIOutput):
+def notify_success(internal_proc_id: int, external_proc_id: int, webhook_url: str, result: schemas.processing_request.NDVIOutput):
     db = SessionLocal()
-    crud.processing_req.set_success(db, process_id, imagepath = result.path, result= result.model_dump())
+    crud.processing_req.set_success(db, internal_proc_id, imagepath = result.path, result= result.model_dump())
     db.close()
+    requests.post(
+        url = webhook_url,
+        data = json.dumps({
+            'status': schemas.processing_request.ProcessingStatus.done.value,
+            'external_id': external_proc_id,
+            'id': internal_proc_id,
+        }),
+        headers= {
+            'Content-Type': 'application/json'
+        }
+    )
+
 
 @celery_app.task(name="process_ndvi")
-def process_ndvi(process_id: int, polygon_coordinates: list[list]):
+def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str, polygon_coordinates: list[list]):
     try:
         res = pipeline_ndvi(polygone=polygon_coordinates)
     except Exception as e:
-        notify_failed(process_id, exception = e)
+        notify_failed(internal_proc_id, external_proc_id, webhook_url, exception = e)
     else:
-        notify_success(process_id, result = res)
+        notify_success(internal_proc_id, external_proc_id, webhook_url, result = res)
+
+
+@celery_app.task(name="process_nmvi")
+def process_ndmi(internal_proc_id: int, external_proc_id: int, webhook_url: str, polygon_coordinates: list[list]):
+    try:
+        res = pipeline_ndmi(polygone=polygon_coordinates)
+    except Exception as e:
+        notify_failed(internal_proc_id, external_proc_id, webhook_url, exception = e)
+    else:
+        notify_success(internal_proc_id, external_proc_id, webhook_url, result = res)
+
+        

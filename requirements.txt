@@ -23,11 +23,11 @@ exceptiongroup==1.2.0
 fastapi==0.104.1
 flower==2.0.1
 fonttools==4.45.0
-GDAL==3.4.1
 geojson==3.1.0
 geomet==1.1.0
 gotrue==1.3.0
 greenlet==3.0.1
+gunicorn==20.1.0
 h11==0.14.0
 haversine==2.8.0
 html2text==2020.1.16

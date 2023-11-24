@@ -10,7 +10,7 @@ from app.schemas.processing_request import CreateProcessingRequest, UpdateProces
 class CRUD(CRUDBase[ProcessingRequest, CreateProcessingRequest, UpdateProcessingRequest]):
     def set_failed(self, db: Session, id: int, error_msg: str = None):
         req = self.get(db, id = id)
-        req.status = ProcessingStatus.failed
+        req.status = ProcessingStatus.failed.value
         if error_msg:
             req.error_msg = error_msg
         db.add(req)

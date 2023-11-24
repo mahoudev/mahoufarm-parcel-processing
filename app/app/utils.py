@@ -275,7 +275,7 @@ def ndmi(polygone, tile_name):
 
   #Extract tile  coordonnates (lat,long)
   tile_path = tile_name+"/INSPIRE.xml"
-  xml_file=open(tile_path,"r")
+  xml_file=open(get_dataset_path(tile_path),"r")
   xml_string=xml_file.read()
   python_dict=xmltodict.parse(xml_string)
   tile_coordonnates = python_dict["gmd:MD_Metadata"]["gmd:identificationInfo"]["gmd:MD_DataIdentification"]["gmd:abstract"]["gco:CharacterString"].split()
@@ -302,14 +302,20 @@ def ndmi(polygone, tile_name):
   # read images
   path_8 = tile_name+"/GRANULE/*/IMG_DATA/R10m/*_B08_10m.jp2"
   path_11 = tile_name+"/GRANULE/*/IMG_DATA/R20m/*_B11_20m.jp2"
-  nir_object = gdal.Open(glob(path_8)[0])
+  print("\n\n\n\n path_8 ", get_dataset_path(glob(path_8, root_dir=settings.DATASETS_DIR)[0]))
+  nir_object = gdal.Open(get_dataset_path(glob(path_8, root_dir=settings.DATASETS_DIR)[0]))
   rb = nir_object.GetRasterBand(1)
   nir = rb.ReadAsArray()
+  
   name_b11 = "resample.tif"
-  path_11 = glob(path_11)[0]
+  path_11 = get_dataset_path(glob(path_11, root_dir=settings.DATASETS_DIR)[0])
+  print("\n\n\n\n path_11 ", get_dataset_path(glob(path_11, root_dir=settings.DATASETS_DIR)[0]))
+
+  print(name_b11, path_11)
   dst = gdal.Translate(name_b11, path_11, width=10980, height=10980,resampleAlg ="nearest")
   rbs = dst.GetRasterBand(1)
   b11 = rbs.ReadAsArray()
+  
   # extract area and remove unsigne
   sub_b11 = b11[y_min:y_max+1,x_min:x_max+1].astype(np.float16)
   sub_nir = nir[y_min:y_max+1,x_min:x_max+1].astype(np.float16)
@@ -320,7 +326,7 @@ def ndmi(polygone, tile_name):
   return ndmi_image,ndmi_mean_value,X,Y
 
 # pipeline
-def pipeline_ndmi(polygone_coordinates: list[list]):
+def pipeline_ndmi(polygone: list[list]):
   print("========> Download termined")
   unzip()
   print("========> Unzip termined")

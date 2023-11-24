@@ -4,7 +4,7 @@ services:
     image: mahoufarm-map-processing:lastest
     build: .
     ports:
-      - 5000:80
+      - 6666:80
     env_file:
       - .env
     volumes:
