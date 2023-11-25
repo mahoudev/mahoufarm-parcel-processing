@@ -31,10 +31,11 @@ from app import schemas, crud
 from app.db.session import SessionLocal
 
 def notify_failed(internal_proc_id: int, external_proc_id: int, webhook_url: str, exception = None):
+    print("Will notify failure to ", webhook_url)
     db = SessionLocal()
     crud.processing_req.set_failed(db, internal_proc_id, error_msg=str(exception))
     db.close()
-    requests.post(
+    res = requests.post(
         url = webhook_url,
         data = json.dumps({
             'status': schemas.processing_request.ProcessingStatus.failed.value,
@@ -46,12 +47,14 @@ def notify_failed(internal_proc_id: int, external_proc_id: int, webhook_url: str
             'Content-Type': 'application/json'
         }
     )
+    print(res.text, res)
 
 def notify_success(internal_proc_id: int, external_proc_id: int, webhook_url: str, result: schemas.processing_request.NDVIOutput):
+    print("Will notify success to ", webhook_url)
     db = SessionLocal()
     crud.processing_req.set_success(db, internal_proc_id, imagepath = result.path, result= result.model_dump())
     db.close()
-    requests.post(
+    res = requests.post(
         url = webhook_url,
         data = json.dumps({
             'status': schemas.processing_request.ProcessingStatus.done.value,
@@ -63,12 +66,14 @@ def notify_success(internal_proc_id: int, external_proc_id: int, webhook_url: st
         }
     )
 
+    print(res.text, res)
+
 
 @celery_app.task(name="process_ndvi")
 def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str, polygon_coordinates: list[list]):
     try:
         res = pipeline_ndvi(polygone=polygon_coordinates)
-        print("OUTPUT NDVI ", res, res)
+        print("OUTPUT NDVI ", res, type(res))
         print("/////////// ", res.model_dump())
         print("/////////// ", res.model_dump_json())
         
