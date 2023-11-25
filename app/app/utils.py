@@ -53,7 +53,7 @@ def map_number(number):
 def unzip():
   files = glob('*.zip', root_dir=settings.DATASETS_DIR)
   for file in files:
-    with zipfile.ZipFile(file, 'r') as zip_ref:
+    with zipfile.ZipFile(get_dataset_path(file), 'r') as zip_ref:
       zip_ref.extractall()
 
 def select_best_cloud_coverage_tile():
@@ -298,7 +298,6 @@ def ndmi(polygone, tile_name):
   X,Y = cartesion_distance(polygone)
   X,Y = coords_to_pixelsv2(ref,X,Y)
   X,Y = trasnlate(X,Y,x_min,y_min)
-
   # read images
   path_8 = tile_name+"/GRANULE/*/IMG_DATA/R10m/*_B08_10m.jp2"
   path_11 = tile_name+"/GRANULE/*/IMG_DATA/R20m/*_B11_20m.jp2"
