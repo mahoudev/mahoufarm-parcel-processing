@@ -200,7 +200,7 @@ def viz_data_ndvi(image,X,Y) -> str:
 def delete_zips():
   files = glob('*.zip', root_dir=settings.DATASETS_DIR)
   for f in files:
-    os.remove(f)
+    os.remove(get_dataset_path(f))
 
 def superficie(image,X,Y):
     pts = np.array([[u[0],u[1]] for u in zip(X,Y)]) #,fc='none', ec='gold', lw=1
