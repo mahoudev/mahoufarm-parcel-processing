@@ -68,6 +68,10 @@ def notify_success(internal_proc_id: int, external_proc_id: int, webhook_url: st
 def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str, polygon_coordinates: list[list]):
     try:
         res = pipeline_ndvi(polygone=polygon_coordinates)
+        print("OUTPUT NDVI ", res, res)
+        print("/////////// ", res.model_dump())
+        print("/////////// ", res.model_dump_json())
+        
     except Exception as e:
         notify_failed(internal_proc_id, external_proc_id, webhook_url, exception = e)
     else:
@@ -78,6 +82,10 @@ def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
 def process_ndmi(internal_proc_id: int, external_proc_id: int, webhook_url: str, polygon_coordinates: list[list]):
     try:
         res = pipeline_ndmi(polygone=polygon_coordinates)
+        print("OUTPUT NDMI ##############", res, res)
+        print("/////////// ", res.model_dump())
+        print("/////////// ", res.model_dump_json())
+
     except Exception as e:
         notify_failed(internal_proc_id, external_proc_id, webhook_url, exception = e)
     else:
