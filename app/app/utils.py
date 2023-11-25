@@ -233,14 +233,23 @@ def pipeline_ndvi(polygone: list[list]) -> schemas.processing_request.NDVIOutput
   print("========> Download termined")
   unzip()
   print("========> Unzip termined")
+  print("========> Selection of best tile")
   tile_name, prob, days_ago = select_best_cloud_coverage_tile()
+  print("========> Best tile selected")
 
   #print(tile_name)
+
+  print("========> Computing ndvi")
   image_ndvi, value_ndvi, X, Y = ndvi(polygone,tile_name)
+  print("========> Computing area surface")
   superifcie_polygone = superficie(image_ndvi,X,Y)
+  print("========> Saving file")
   imagepath = viz_data_ndvi(image_ndvi,X,Y)
   
+  print("========> Removing useless files")
   delete_zips()
+
+  print("========> Process completed")
 
   return schemas.processing_request.NDVIOutput(path=imagepath, value=value_ndvi, polygon_area=superifcie_polygone)
 
@@ -337,6 +346,7 @@ def pipeline_ndmi(polygone: list[list]):
   image_ndmi,value_ndmi,X,Y= ndmi(polygone,tile_name)
   print("========> NDMI calculation termined")
   superifcie_polygone = superficie(image_ndmi,X,Y)
+  print("========> Saving VIZ")
   imagepath = viz_data_ndmi(image_ndmi,X,Y)
   print("========> VIZ termined")
   # delete_tiles()

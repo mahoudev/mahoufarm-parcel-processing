@@ -10,6 +10,7 @@ class ProcessingStatus(enum.Enum):
 
 class ProcessingType(enum.Enum):
     ndvi = "ndvi"
+    ndmi = "ndmi"
 
 class BaseProcessingRequest(BaseModel):
     id_initiator: Optional[int]

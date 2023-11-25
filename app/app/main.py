@@ -47,7 +47,7 @@ poly = [
           ]
 
 # utils.pipeline_ndmi(poly)
-
+# utils.pipeline_ndvi(poly)
 @router.post("/process/ndvi")
 def create_process_ndvi(
     request: Request,
@@ -90,7 +90,7 @@ def create_process_ndmi(
         raise HTTPException(status_code=401, detail="Not authenticated")
     proc = models.ProcessingRequest(
         id_initiator = id_user,
-        process_type = schemas.processing_request.ProcessingType.ndvi.value,
+        process_type = schemas.processing_request.ProcessingType.ndmi.value,
         polygon_coordinates = polygon_coordinates,
         status = schemas.processing_request.ProcessingStatus.pending.value
     )
