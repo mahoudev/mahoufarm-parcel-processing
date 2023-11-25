@@ -60,6 +60,8 @@ def select_best_cloud_coverage_tile():
   tile_names = {}
   cld_prob = []
   folders = glob('*.SAFE', root_dir=settings.DATASETS_DIR)
+  if len(folders) == 0:
+    raise Exception(f"NO Tile found in DATASETS_DIR = {settings.DATASETS_DIR}")
   for fold in folders:
     metadata_path = fold+"/MTD_MSIL2A.xml"
     xml_file=open(os.path.join(settings.DATASETS_DIR, metadata_path),"r")
@@ -334,9 +336,11 @@ def pipeline_ndmi(polygone: list[list]):
   #image_ndvi,value_ndvi,h1,h2,w1,w2 = ndvi(polygone,tile_name)
   image_ndmi,value_ndmi,X,Y= ndmi(polygone,tile_name)
   print("========> NDMI calculation termined")
-  superifcie = superficie(image_ndmi,X,Y)
-  viz_data_ndmi(image_ndmi,X,Y)
+  superifcie_polygone = superficie(image_ndmi,X,Y)
+  imagepath = viz_data_ndmi(image_ndmi,X,Y)
   print("========> VIZ termined")
   # delete_tiles()
   os.remove("resample.tif")
   print("========> files sources deteleted")
+
+  return schemas.processing_request.NDVIOutput(path=imagepath, value=value_ndmi, polygon_area=superifcie_polygone)
