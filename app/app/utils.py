@@ -231,8 +231,11 @@ def viz_data_ndvi(image,X,Y) -> str:
     ax = plt.gca()
     ax.add_patch(polygon)
     #plt.plot(X,Y)
-    filename = f"{str(datetime.now())}_ndvi_{uuid4()}.png"
+    filename = f"{str(datetime.now())}__ndvi__{uuid4()}.png"
     plt.savefig(get_absolute_path(filename))
+
+    plt.clf()
+    
     return filename
 
 
@@ -302,13 +305,15 @@ def viz_data_ndmi(image,X,Y, working_dir: str):
     polygon = Polygon([(u[0],u[1]) for u in zip(X,Y)],fc='none', ec='gold', lw=1)
     cm = LinearSegmentedColormap.from_list("Custom", colors, N=20)
     h,w = image.shape
-    plt.imshow(image, cmap= cm)
+    im = plt.imshow(image, cmap= cm)
     plt.colorbar()
     ax = plt.gca()
     ax.add_patch(polygon)
     #plt.plot(X,Y)
-    filename = f"ndmi__{str(datetime.now())}__{uuid4()}.png"
+    filename = f"{str(datetime.now())}__ndmi__{uuid4()}.png"
     plt.savefig(os.path.join(working_dir, filename))
+
+    plt.clf()
     return filename
 
 
@@ -379,19 +384,16 @@ def pipeline_ndmi(polygone: list[list]):
   print("========> Unzip termined")
   tile_name,prob,days_ago = select_best_cloud_coverage_tile()
   print("========> Best tile selection termined")
-  #image_ndvi,value_ndvi,h1,h2,w1,w2 = ndvi(polygone,tile_name)
-
-  # unique_random_working_directory = create_random_directory(settings.STATICFILES_DIR)
 
   image_ndmi,value_ndmi,X,Y= ndmi(polygone,tile_name)
   print("========> NDMI calculation termined")
+  
   superifcie_polygone = superficie(image_ndmi,X,Y)
+  
   print("========> Saving VIZ")
   imagepath = viz_data_ndmi(image_ndmi,X,Y, working_dir = settings.STATICFILES_DIR)
-  print("========> VIZ termined")
   
-  # delete_tiles()
-  # os.remove("resample.tif")
+  print("========> VIZ termined")
   print("========> files sources deteleted")
 
   return schemas.processing_request.NDVIOutput(path=imagepath, value=value_ndmi, polygon_area=superifcie_polygone)
