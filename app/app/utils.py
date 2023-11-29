@@ -26,7 +26,27 @@ import zipfile
 import wget
 
 
+
+"""
+Pour tester ce module indépendamant décomment ce qui suit:
+
+class MySetting:
+  STATICFILES_DIR: os.path.curdir
+  DATASETS_DIR: os.path.curdir
+
+settings = MySetting()
+"""
+
+
+
+"""
+Pour tester ce module indépendamant commentez la ligne
+
+  from app.config import settings
+
+"""
 from app.config import settings
+
 
 user = { 'user_name': '', 'password':'', 'plateform':'https://apihub.copernicus.eu/apihub'}
 geomap = read_geojson(os.path.join(settings.STATICFILES_DIR, 'map.geojson'))
@@ -56,6 +76,13 @@ def create_random_directory(root_dir: str) -> str:
           print(f"#### ERROR while creating {path} ")
       print("\n\n------------- find_available_filename ------------------------")
 
+def get_random_filename(root_dir: str) -> str:
+    while True:
+      filename = str(uuid4())
+      path = os.path.join(root_dir, filename)
+      if not os.path.exists(path):
+        return filename
+      
 x = glob(get_absolute_path(path))
 
 
@@ -286,7 +313,7 @@ def viz_data_ndmi(image,X,Y, working_dir: str):
 
 
 from osgeo import gdal
-def ndmi(polygone, tile_name, working_dir: str):
+def ndmi(polygone, tile_name):
 
   # Extract rectangle that include the polygone (long,lat)
   #long
@@ -324,16 +351,14 @@ def ndmi(polygone, tile_name, working_dir: str):
   # read images
   path_8 = tile_name+"/GRANULE/*/IMG_DATA/R10m/*_B08_10m.jp2"
   path_11 = tile_name+"/GRANULE/*/IMG_DATA/R20m/*_B11_20m.jp2"
-  print("\n\n\n\n path_8 ", get_dataset_path(glob(path_8, root_dir=settings.DATASETS_DIR)[0]))
+
   nir_object = gdal.Open(get_dataset_path(glob(path_8, root_dir=settings.DATASETS_DIR)[0]))
   rb = nir_object.GetRasterBand(1)
   nir = rb.ReadAsArray()
   
-  name_b11 = os.path.join(working_dir, "resample.tif")
+  name_b11 = f"ndmi__{str(datetime.now())}__{get_random_filename(settings.STATICFILES_DIR)}.tif" # os.path.join(working_dir, "ndmi_resample.tif")
   path_11 = get_dataset_path(glob(path_11, root_dir=settings.DATASETS_DIR)[0])
-  print("\n\n\n\n path_11 ", get_dataset_path(glob(path_11, root_dir=settings.DATASETS_DIR)[0]))
 
-  print(name_b11, path_11)
   dst = gdal.Translate(name_b11, path_11, width=10980, height=10980,resampleAlg ="nearest")
   rbs = dst.GetRasterBand(1)
   b11 = rbs.ReadAsArray()
@@ -356,9 +381,9 @@ def pipeline_ndmi(polygone: list[list]):
   print("========> Best tile selection termined")
   #image_ndvi,value_ndvi,h1,h2,w1,w2 = ndvi(polygone,tile_name)
 
-  unique_random_working_directory = create_random_directory(settings.STATICFILES_DIR)
+  # unique_random_working_directory = create_random_directory(settings.STATICFILES_DIR)
 
-  image_ndmi,value_ndmi,X,Y= ndmi(polygone,tile_name, working_dir = unique_random_working_directory)
+  image_ndmi,value_ndmi,X,Y= ndmi(polygone,tile_name)
   print("========> NDMI calculation termined")
   superifcie_polygone = superficie(image_ndmi,X,Y)
   print("========> Saving VIZ")
