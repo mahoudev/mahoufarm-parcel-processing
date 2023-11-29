@@ -44,6 +44,18 @@ def get_absolute_path(filename):
 def get_dataset_path(filename):
   return os.path.join(settings.DATASETS_DIR, filename)
 
+def create_random_directory(root_dir: str) -> str:
+    while True:
+      filename = str(uuid4())
+      path = os.path.join(root_dir, filename)
+      if not os.path.exists(path):
+        try:
+          os.makedirs(path)
+          return filename
+        except:
+          print(f"#### ERROR while creating {path} ")
+      print("\n\n------------- find_available_filename ------------------------")
+
 x = glob(get_absolute_path(path))
 
 
@@ -258,7 +270,7 @@ def pipeline_ndvi(polygone: list[list]) -> schemas.processing_request.NDVIOutput
 ############################################
 ############################################
 
-def viz_data_ndmi(image,X,Y):
+def viz_data_ndmi(image,X,Y, working_dir: str):
     colors = [(165/255, 38/255, 10/255),(119/255, 181/255, 254/255)] # ndvi colors
     polygon = Polygon([(u[0],u[1]) for u in zip(X,Y)],fc='none', ec='gold', lw=1)
     cm = LinearSegmentedColormap.from_list("Custom", colors, N=20)
@@ -268,13 +280,13 @@ def viz_data_ndmi(image,X,Y):
     ax = plt.gca()
     ax.add_patch(polygon)
     #plt.plot(X,Y)
-    filename = f"{str(datetime.now())}_ndmi_{uuid4()}.png"
-    plt.savefig(get_absolute_path(filename))
+    filename = f"ndmi__{str(datetime.now())}__{uuid4()}.png"
+    plt.savefig(os.path.join(working_dir, filename))
     return filename
 
 
 from osgeo import gdal
-def ndmi(polygone, tile_name):
+def ndmi(polygone, tile_name, working_dir: str):
 
   # Extract rectangle that include the polygone (long,lat)
   #long
@@ -317,7 +329,7 @@ def ndmi(polygone, tile_name):
   rb = nir_object.GetRasterBand(1)
   nir = rb.ReadAsArray()
   
-  name_b11 = "resample.tif"
+  name_b11 = os.path.join(working_dir, "resample.tif")
   path_11 = get_dataset_path(glob(path_11, root_dir=settings.DATASETS_DIR)[0])
   print("\n\n\n\n path_11 ", get_dataset_path(glob(path_11, root_dir=settings.DATASETS_DIR)[0]))
 
@@ -343,14 +355,18 @@ def pipeline_ndmi(polygone: list[list]):
   tile_name,prob,days_ago = select_best_cloud_coverage_tile()
   print("========> Best tile selection termined")
   #image_ndvi,value_ndvi,h1,h2,w1,w2 = ndvi(polygone,tile_name)
-  image_ndmi,value_ndmi,X,Y= ndmi(polygone,tile_name)
+
+  unique_random_working_directory = create_random_directory(settings.STATICFILES_DIR)
+
+  image_ndmi,value_ndmi,X,Y= ndmi(polygone,tile_name, working_dir = unique_random_working_directory)
   print("========> NDMI calculation termined")
   superifcie_polygone = superficie(image_ndmi,X,Y)
   print("========> Saving VIZ")
-  imagepath = viz_data_ndmi(image_ndmi,X,Y)
+  imagepath = viz_data_ndmi(image_ndmi,X,Y, working_dir = settings.STATICFILES_DIR)
   print("========> VIZ termined")
+  
   # delete_tiles()
-  os.remove("resample.tif")
+  # os.remove("resample.tif")
   print("========> files sources deteleted")
 
   return schemas.processing_request.NDVIOutput(path=imagepath, value=value_ndmi, polygon_area=superifcie_polygone)
