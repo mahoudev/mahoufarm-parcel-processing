@@ -42,4 +42,5 @@ class APIInputNDVI(BaseModel):
 class NDVIOutput(BaseModel):
   path: str
   value: float
-  polygon_area: float
+  image_base64: Optional[str]
+  polygon_area: Optional[float]

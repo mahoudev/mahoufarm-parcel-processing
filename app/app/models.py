@@ -16,3 +16,4 @@ class ProcessingRequest(Base):
     error_msg: Mapped[str] = Column(Text)
     result: Mapped[dict] = Column(JSON)
     imagepath: Mapped[str] = Column(String)
+    image_base64: Mapped[str] = Column(Text)

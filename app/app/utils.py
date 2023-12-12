@@ -232,11 +232,12 @@ def viz_data_ndvi(image,X,Y) -> str:
     ax.add_patch(polygon)
     #plt.plot(X,Y)
     filename = f"{str(datetime.now())}__ndvi__{uuid4()}.png"
-    plt.savefig(get_absolute_path(filename))
+    abs_path = get_absolute_path(filename)
+    plt.savefig(abs_path)
 
     plt.clf()
     
-    return filename
+    return abs_path
 
 
 def delete_zips():
@@ -266,6 +267,27 @@ def superficie(image,X,Y):
     # cv2.imwrite("mask.png", mask)
     return sup
 
+import base64
+from PIL import Image
+from io import BytesIO
+def from_image_base64(image_path: str) -> str:
+
+    image = Image.open(image_path)
+
+    # Préparer un buffer en mémoire pour l'image
+    buffered = BytesIO()
+
+    # Enregistrer l'image dans le buffer en format PNG
+    image.save(buffered, format="PNG")
+
+    # Obtenir les données binaires de l'image
+    img_data = buffered.getvalue()
+
+    # Convertir les données binaires en chaîne base64
+    img_base64 = base64.b64encode(img_data).decode()
+
+    return img_base64
+
 from app import schemas
 
 def pipeline_ndvi(polygone: list[list]) -> schemas.processing_request.NDVIOutput:
@@ -288,12 +310,20 @@ def pipeline_ndvi(polygone: list[list]) -> schemas.processing_request.NDVIOutput
   print("========> Saving file")
   imagepath = viz_data_ndvi(image_ndvi,X,Y)
   
+  print("========> Converting to base64")
+  image_base64 = from_image_base64(imagepath)
+
   print("========> Removing useless files")
   delete_zips()
 
   print("========> Process completed")
 
-  return schemas.processing_request.NDVIOutput(path=imagepath, value=value_ndvi, polygon_area=superifcie_polygone)
+  return schemas.processing_request.NDVIOutput(
+     image_base64=image_base64,
+     path=imagepath, 
+     value=value_ndvi, 
+     polygon_area=superifcie_polygone
+  )
 
 
 ########################################### NDMI ########################################################
@@ -311,10 +341,11 @@ def viz_data_ndmi(image,X,Y, working_dir: str):
     ax.add_patch(polygon)
     #plt.plot(X,Y)
     filename = f"{str(datetime.now())}__ndmi__{uuid4()}.png"
-    plt.savefig(os.path.join(working_dir, filename))
+    abs_path = os.path.join(working_dir, filename)
+    plt.savefig(abs_path)
 
     plt.clf()
-    return filename
+    return abs_path
 
 
 from osgeo import gdal
@@ -393,7 +424,15 @@ def pipeline_ndmi(polygone: list[list]):
   print("========> Saving VIZ")
   imagepath = viz_data_ndmi(image_ndmi,X,Y, working_dir = settings.STATICFILES_DIR)
   
+  print("========> Converting to base64")
+  image_base64 = from_image_base64(imagepath)
+
   print("========> VIZ termined")
   print("========> files sources deteleted")
 
-  return schemas.processing_request.NDVIOutput(path=imagepath, value=value_ndmi, polygon_area=superifcie_polygone)
+  return schemas.processing_request.NDVIOutput(
+    image_base64=image_base64,
+    path=imagepath, 
+    value=value_ndmi, 
+    polygon_area=superifcie_polygone
+  )

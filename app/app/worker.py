@@ -26,15 +26,14 @@ from typing import Optional
 import time, json, requests
 import requests
 
+
 from app.utils import pipeline_ndvi, pipeline_ndmi
 from app import schemas, crud
+from app.config import settings
 from app.db.session import SessionLocal
 
 def notify_failed(internal_proc_id: int, external_proc_id: int, webhook_url: str, exception = None):
     print("Will notify failure to ", webhook_url)
-    db = SessionLocal()
-    crud.processing_req.set_failed(db, internal_proc_id, error_msg=str(exception))
-    db.close()
     res = requests.post(
         url = webhook_url,
         data = json.dumps({
@@ -49,17 +48,21 @@ def notify_failed(internal_proc_id: int, external_proc_id: int, webhook_url: str
     )
     print(res.text, res)
 
-def notify_success(internal_proc_id: int, external_proc_id: int, webhook_url: str, result: schemas.processing_request.NDVIOutput):
+def notify_success(
+    internal_proc_id: int, 
+    external_proc_id: int, 
+    webhook_url: str, 
+    img_base64: str
+    
+):
     print("Will notify success to ", webhook_url)
-    db = SessionLocal()
-    crud.processing_req.set_success(db, internal_proc_id, imagepath = result.path, result= result.model_dump())
-    db.close()
     res = requests.post(
         url = webhook_url,
         data = json.dumps({
             'status': schemas.processing_request.ProcessingStatus.done.value,
             'external_id': external_proc_id,
             'id': internal_proc_id,
+            'image_base64': str(img_base64)
         }),
         headers= {
             'Content-Type': 'application/json'
@@ -78,9 +81,31 @@ def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
         print("/////////// ", res.model_dump_json())
         
     except Exception as e:
+        db = SessionLocal()
+        crud.processing_req.set_failed(db, internal_proc_id, error_msg=str(e))
+        db.close()
+        
         notify_failed(internal_proc_id, external_proc_id, webhook_url, exception = e)
     else:
-        notify_success(internal_proc_id, external_proc_id, webhook_url, result = res)
+        result_dict = res.model_dump()
+        del result_dict['image_base64']
+
+        db = SessionLocal()
+        crud.processing_req.set_success(
+            db, 
+            internal_proc_id, 
+            img_base64 = res.image_base64, 
+            imagepath = res.path, 
+            result= result_dict
+        )
+        db.close()
+
+        notify_success(
+            internal_proc_id, 
+            external_proc_id, 
+            webhook_url, 
+            img_base64=res.image_base64
+        )
 
 
 @celery_app.task(name="process_nmvi")
@@ -92,8 +117,28 @@ def process_ndmi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
         print("/////////// ", res.model_dump_json())
 
     except Exception as e:
+        db = SessionLocal()
+        crud.processing_req.set_failed(db, internal_proc_id, error_msg=str(e))
+        db.close()
+        
         notify_failed(internal_proc_id, external_proc_id, webhook_url, exception = e)
     else:
-        notify_success(internal_proc_id, external_proc_id, webhook_url, result = res)
-
+        result_dict = res.model_dump()
+        del result_dict['image_base64']
         
+        db = SessionLocal()
+        crud.processing_req.set_success(
+            db, 
+            internal_proc_id, 
+            img_base64 = res.image_base64, 
+            imagepath = res.path, 
+            result= result_dict
+        )
+        db.close()
+
+        notify_success(
+            internal_proc_id, 
+            external_proc_id, 
+            webhook_url, 
+            img_base64=res.image_base64
+        )
