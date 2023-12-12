@@ -95,7 +95,7 @@ def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
             db, 
             internal_proc_id, 
             img_base64 = res.image_base64, 
-            imagepath = res.path, 
+            imagepath = os.path.basename(res.path), 
             result= result_dict
         )
         db.close()
@@ -131,7 +131,7 @@ def process_ndmi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
             db, 
             internal_proc_id, 
             img_base64 = res.image_base64, 
-            imagepath = res.path, 
+            imagepath = os.path.basename(res.path), 
             result= result_dict
         )
         db.close()
