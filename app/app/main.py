@@ -8,7 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import uuid
 
-from app.worker import process_ndvi, process_ndmi
+from app.worker import process_ndvi, process_ndmi, process_evolution_ndvi
 from app import models, schemas, crud, utils
 from app.config import settings
 from app.db.session import SessionLocal, get_db
@@ -106,6 +106,45 @@ def create_process_ndmi(
 
     return JSONResponse({"id": proc.id})
 
+
+@router.post("/process-evolution/{process_type}")
+def create_process_evolution_ndvi(
+    request: Request,
+    process_type: schemas.processing_request.ProcessingType,
+    db: Session = Depends(get_db),
+    id_user: int = Body(...),
+    request_identifier: int = Body(...),
+    image1: str = Body(...),
+    image2: str = Body(...),
+    webhook: str = Body(...),
+):
+    if request.headers.get("Authorization") != settings.AUTH_KEY:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    proc = models.ProcessingEvolutionRequest(
+        id_initiator = id_user,
+        process_type = process_type.value,
+        image1 = image1,
+        image2 = image2,
+        status = schemas.processing_request.ProcessingStatus.pending.value
+    )
+
+    db.add(proc)
+    db.commit()
+
+    task = process_evolution_ndvi.delay(
+        internal_proc_id = proc.id, 
+        external_proc_id = request_identifier, 
+        webhook_url = webhook, 
+        first_ndvi_base64 = image1,
+        second_ndvi_base64 = image2
+    )
+
+    proc.task_id = task.task_id
+    db.add(proc)
+    db.commit()
+
+    return JSONResponse({"id": proc.id})
+
 @router.get("/process/{req_id}")
 def read_process(
     request: Request,
@@ -116,6 +155,20 @@ def read_process(
     #     raise HTTPException(status_code=401, detail="Not authenticated")
     
     req = crud.processing_req.get(db, id=req_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="Request ID does not exist")
+    return req
+
+@router.get("/process-evolution/{req_id}")
+def read_process(
+    request: Request,
+    req_id: int,
+    db: Session = Depends(get_db)
+):
+    # if request.headers.get("Authorization") != settings.AUTH_KEY:
+    #     raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    req = db.query(models.ProcessingEvolutionRequest).get(req_id)
     if not req:
         raise HTTPException(status_code=404, detail="Request ID does not exist")
     return req

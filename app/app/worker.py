@@ -27,7 +27,7 @@ import time, json, requests
 import requests
 
 
-from app.utils import pipeline_ndvi, pipeline_ndmi
+from app.utils import pipeline_ndvi, pipeline_ndmi, pipeline_ndvi_evolution, from_base64_to_matrix
 from app import schemas, crud
 from app.config import settings
 from app.db.session import SessionLocal
@@ -75,7 +75,7 @@ def notify_success(
 @celery_app.task(name="process_ndvi")
 def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str, polygon_coordinates: list[list]):
     try:
-        res = pipeline_ndvi(polygone=polygon_coordinates)
+        res, raw_ndvi = pipeline_ndvi(polygone=polygon_coordinates)
         print("OUTPUT NDVI ", res, type(res))
         print("/////////// ", res.model_dump())
         print("/////////// ", res.model_dump_json())
@@ -86,6 +86,7 @@ def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
         db.close()
         
         notify_failed(internal_proc_id, external_proc_id, webhook_url, exception = e)
+        raise e
     else:
         result_dict = res.model_dump()
         del result_dict['image_base64']
@@ -94,7 +95,7 @@ def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
         crud.processing_req.set_success(
             db, 
             internal_proc_id, 
-            img_base64 = res.image_base64, 
+            img_base64 = raw_ndvi, #res.image_base64, 
             imagepath = os.path.basename(res.path), 
             result= result_dict
         )
@@ -104,14 +105,14 @@ def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
             internal_proc_id, 
             external_proc_id, 
             webhook_url, 
-            img_base64=res.image_base64
+            img_base64=raw_ndvi #res.image_base64
         )
 
 
 @celery_app.task(name="process_nmvi")
 def process_ndmi(internal_proc_id: int, external_proc_id: int, webhook_url: str, polygon_coordinates: list[list]):
     try:
-        res = pipeline_ndmi(polygone=polygon_coordinates)
+        res, raw_ndmi = pipeline_ndmi(polygone=polygon_coordinates)
         print("OUTPUT NDMI ##############", res, res)
         print("/////////// ", res.model_dump())
         print("/////////// ", res.model_dump_json())
@@ -130,7 +131,7 @@ def process_ndmi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
         crud.processing_req.set_success(
             db, 
             internal_proc_id, 
-            img_base64 = res.image_base64, 
+            img_base64 = raw_ndmi, # res.image_base64, 
             imagepath = os.path.basename(res.path), 
             result= result_dict
         )
@@ -140,5 +141,39 @@ def process_ndmi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
             internal_proc_id, 
             external_proc_id, 
             webhook_url, 
-            img_base64=res.image_base64
+            img_base64=raw_ndmi #res.image_base64
+        )
+
+@celery_app.task(name="process_evolution_ndvi")
+def process_evolution_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str, first_ndvi_base64: str, second_ndvi_base64: str):
+    ndvi1 = from_base64_to_matrix(first_ndvi_base64)
+    ndvi2 = from_base64_to_matrix(second_ndvi_base64)
+    try:
+        filename, result_base64 = pipeline_ndvi_evolution(ndvi1, ndvi2)
+    except Exception as e:
+        db = SessionLocal()
+        crud.evolution_req.set_failed(db, internal_proc_id, error_msg=str(e))
+        db.close()
+        
+        notify_failed(internal_proc_id, external_proc_id, webhook_url, exception = e)
+    else:
+        result_dict = json.dumps({
+            "filename": filename
+        })
+        
+        db = SessionLocal()
+        crud.evolution_req.set_success(
+            db, 
+            internal_proc_id, 
+            img_base64 = result_base64, 
+            imagepath = filename, 
+            result= result_dict
+        )
+        db.close()
+
+        notify_success(
+            internal_proc_id, 
+            external_proc_id, 
+            webhook_url, 
+            img_base64=result_base64
         )
