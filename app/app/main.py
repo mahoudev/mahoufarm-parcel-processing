@@ -8,7 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import uuid
 
-from app.worker import process_ndvi, process_ndmi, process_evolution_ndvi
+from app.worker import process_feature_computation, process_evolution_ndvi
 from app import models, schemas, crud, utils
 from app.config import settings
 from app.db.session import SessionLocal, get_db
@@ -48,9 +48,10 @@ poly = [
 
 # utils.pipeline_ndmi(poly)
 # utils.pipeline_ndvi(poly)
-@router.post("/process/ndvi")
+@router.post("/process/{process_type}")
 def create_process_ndvi(
     request: Request,
+    process_type: schemas.processing_request.ProcessingType,
     db: Session = Depends(get_db),
     polygon_coordinates: list[list] = Body(...), # [[lat, lon], [lat, lon], ...]
     id_user: int = Body(...),
@@ -61,7 +62,7 @@ def create_process_ndvi(
         raise HTTPException(status_code=401, detail="Not authenticated")
     proc = models.ProcessingRequest(
         id_initiator = id_user,
-        process_type = schemas.processing_request.ProcessingType.ndvi.value,
+        process_type = process_type.value,
         polygon_coordinates = polygon_coordinates,
         status = schemas.processing_request.ProcessingStatus.pending.value
     )
@@ -69,43 +70,13 @@ def create_process_ndvi(
     db.add(proc)
     db.commit()
 
-    task = process_ndvi.delay(proc.id, request_identifier, webhook, polygon_coordinates)
+    task = process_feature_computation.delay(process_type.value, proc.id, request_identifier, webhook, polygon_coordinates)
 
-    proc.task_id = task.task_id
+    proc.task_id = task.id
     db.add(proc)
     db.commit()
 
     return JSONResponse({"id": proc.id})
-
-@router.post("/process/ndmi")
-def create_process_ndmi(
-    request: Request,
-    db: Session = Depends(get_db),
-    polygon_coordinates: list[list] = Body(...), # [[lat, lon], [lat, lon], ...]
-    id_user: int = Body(...),
-    request_identifier: int = Body(...),
-    webhook: str = Body(...),
-):
-    if request.headers.get("Authorization") != settings.AUTH_KEY:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    proc = models.ProcessingRequest(
-        id_initiator = id_user,
-        process_type = schemas.processing_request.ProcessingType.ndmi.value,
-        polygon_coordinates = polygon_coordinates,
-        status = schemas.processing_request.ProcessingStatus.pending.value
-    )
-
-    db.add(proc)
-    db.commit()
-
-    task = process_ndmi.delay(proc.id, request_identifier, webhook, polygon_coordinates)
-
-    proc.task_id = task.task_id
-    db.add(proc)
-    db.commit()
-
-    return JSONResponse({"id": proc.id})
-
 
 @router.post("/process-evolution/{process_type}")
 def create_process_evolution_ndvi(

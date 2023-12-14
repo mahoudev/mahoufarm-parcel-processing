@@ -48,8 +48,8 @@ class NDVIOutput(BaseModel):
   polygon_area: Optional[float]
 
 class ProcessingOutput(BaseModel):
-  matrix: list
   mean_value: float
-  image_base64: Optional[str]
-  polygon_area: Optional[float]
   used_tile_name: str
+  polygon_area: Optional[float]
+  matrix: list
+  image_base64: Optional[str]

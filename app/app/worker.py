@@ -72,10 +72,25 @@ def notify_success(
 
 
 @celery_app.task(name="process_ndvi")
-def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str, polygon_coordinates: list[list]):
+def process_feature_computation(
+    process_type: schemas.processing_request.ProcessingType,
+    internal_proc_id: int, 
+    external_proc_id: int, 
+    webhook_url: str, 
+    polygon_coordinates: list[list]
+):
     try:
-        res = pipeline_ndvi(polygone=polygon_coordinates)
-        print("////////////////// OUTPUT NDVI ", type(res))
+        if isinstance(process_type, str):
+            process_type = schemas.processing_request.ProcessingType(process_type)
+            
+        if process_type == schemas.processing_request.ProcessingType.ndvi:
+            res = pipeline_ndvi(polygone=polygon_coordinates)
+            print("////////////////// OUTPUT NDVI ", type(res))
+        elif process_type == schemas.processing_request.ProcessingType.ndmi:
+            res = pipeline_ndmi(polygone=polygon_coordinates)
+            print("////////////////// OUTPUT NDMI ", type(res))
+        else:
+            raise Exception(f"Processing type '{process_type}' not yet implemented ")
         
     except Exception as e:
         db = SessionLocal()
@@ -105,41 +120,6 @@ def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
             result=res
         )
 
-
-@celery_app.task(name="process_nmvi")
-def process_ndmi(internal_proc_id: int, external_proc_id: int, webhook_url: str, polygon_coordinates: list[list]):
-    try:
-        res, raw_ndmi = pipeline_ndmi(polygone=polygon_coordinates)
-        print("OUTPUT NDMI ##############", res, res)
-        print("/////////// ", res.model_dump())
-        print("/////////// ", res.model_dump_json())
-
-    except Exception as e:
-        db = SessionLocal()
-        crud.processing_req.set_failed(db, internal_proc_id, error_msg=str(e))
-        db.close()
-        
-        notify_failed(internal_proc_id, external_proc_id, webhook_url, exception = e)
-    else:
-        result_dict = res.model_dump()
-        del result_dict['image_base64']
-        
-        db = SessionLocal()
-        crud.processing_req.set_success(
-            db, 
-            internal_proc_id, 
-            img_base64 = raw_ndmi, # res.image_base64, 
-            imagepath = os.path.basename(res.path), 
-            result= result_dict
-        )
-        db.close()
-
-        notify_success(
-            internal_proc_id, 
-            external_proc_id, 
-            webhook_url, 
-            img_base64=raw_ndmi #res.image_base64
-        )
 
 @celery_app.task(name="process_evolution_ndvi")
 def process_evolution_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str, first_ndvi_base64: str, second_ndvi_base64: str):

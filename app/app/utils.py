@@ -517,7 +517,6 @@ def pipeline_ndmi(polygone: list[list]):
   print("========> Best tile selection termined")
 
   image_ndmi,value_ndmi,X,Y= ndmi(polygone,tile_name)
-  raw_img = from_matrix_to_base64(image_ndmi)
   print("========> NDMI calculation termined")
   
   superifcie_polygone = superficie(image_ndmi,X,Y)
@@ -527,13 +526,20 @@ def pipeline_ndmi(polygone: list[list]):
   
   print("========> Converting to base64")
   image_base64 = from_image_base64(imagepath)
-
   print("========> VIZ termined")
+
+  print("========> Removing useless files")
+  delete_zips()
+  os.remove(imagepath)
   print("========> files sources deteleted")
 
-  return schemas.processing_request.NDVIOutput(
+  print("========> Process completed")
+  matrix = image_ndmi.tolist()
+
+  return schemas.processing_request.ProcessingOutput(
+    matrix=matrix,
     image_base64=image_base64,
-    path=imagepath, 
-    value=value_ndmi, 
-    polygon_area=superifcie_polygone
-  ), raw_img
+    mean_value=value_ndmi, 
+    polygon_area=superifcie_polygone,
+    used_tile_name = tile_name
+  )
