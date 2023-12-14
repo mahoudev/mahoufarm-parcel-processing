@@ -96,7 +96,7 @@ def unzip():
   files = glob('*.zip', root_dir=settings.DATASETS_DIR)
   for file in files:
     with zipfile.ZipFile(get_dataset_path(file), 'r') as zip_ref:
-      zip_ref.extractall()
+      zip_ref.extractall(settings.DATASETS_DIR)
 
 def select_best_cloud_coverage_tile():
   tile_names = {}
@@ -342,7 +342,40 @@ def pipeline_ndvi(polygone: list[list]) -> (schemas.processing_request.NDVIOutpu
      polygon_area=superifcie_polygone
   ), raw_img
 
-def pipeline_ndvi_evolution(last,new):
+# def pipeline_ndvi_evolution(last: np.ndarray, new: np.ndarray) -> (str, str):
+#   # last = np.array(scene1)
+#   # new = np.array(scene2)
+  
+#   diff = (new-last)
+#   y1 = last.flatten()
+#   y2 = new.flatten()
+#   y3 = diff.flatten()
+#   x= [i for i in range(len(y1))]       
+#   plt.figure(figsize=(10,4))
+
+#   #scene T1
+#   plt.plot(x,y1,c='red',label="ndvi T1")
+#   #scene T2
+#   print("2 plot")
+#   plt.plot(x,y2,label="ndvi T2",c='green')
+#   # diff
+#   # plt.plot(x,y3,label="ndvi diff",c='k')
+#   plt.title('Evolution du NDVI au niveau du pixel')
+#   plt.xlabel(f'Pixels ({len(x)} valeurs)', fontsize=14,)
+#   plt.ylabel('NDVI', fontsize=14)
+#   plt.legend()
+#   plt.xticks(np.arange(min(x), max(x)+1, 20))
+
+#   filename = f"{str(datetime.now())}__evo_ndvi__{uuid4()}.png"
+#   abs_path = get_absolute_path(filename)
+#   plt.savefig(abs_path)
+#   plt.clf()
+
+#   result_base64 = from_image_base64(abs_path)
+
+#   return abs_path, result_base64
+  
+def pipeline_ndvi_evolution(last: np.ndarray, new: np.ndarray) -> (str, str):
   # last = np.array(scene1)
   # new = np.array(scene2)
   
@@ -350,18 +383,30 @@ def pipeline_ndvi_evolution(last,new):
   y1 = last.flatten()
   y2 = new.flatten()
   y3 = diff.flatten()
+
   x= [i for i in range(len(y1))]
-  plt.figure(figsize=(10,4))
+
+  # Nombre de points de données
+  nombre_points = len(y1)
+
+  # Largeur de base pour 1000 points de données
+  largeur_base = 10  # 10 pouces pour 1000 points de données
+
+  # Calculer la nouvelle largeur proportionnelle au nombre de points
+  largeur_fig = largeur_base * (nombre_points / 1000)
+  largeur_fig = max(min(largeur_fig, 100), largeur_base) 
+  largeur_fig = min(largeur_fig, 65500)
+  plt.figure(figsize=(largeur_fig, largeur_fig * 0.4))
 
   #scene T1
-  plt.plot(x,y1,c='red',label="ndvi T1")
+  plt.plot(x,y1 ,c='red',label="ndvi T1")
   #scene T2
   print("2 plot")
-  plt.plot(x,y2,label="ndvi T2",c='green')
+  plt.plot(x, y2,label="ndvi T2",c='green')
   # diff
   # plt.plot(x,y3,label="ndvi diff",c='k')
   plt.title('Evolution du NDVI au niveau du pixel')
-  plt.xlabel('Pixels', fontsize=14,)
+  plt.xlabel(f'Pixels ({len(x)} valeurs sur {len(x)})', fontsize=14,)
   plt.ylabel('NDVI', fontsize=14)
   plt.legend()
   plt.xticks(np.arange(min(x), max(x)+1, 20))
@@ -375,7 +420,6 @@ def pipeline_ndvi_evolution(last,new):
 
   return abs_path, result_base64
   
-
 
 ########################################### NDMI ########################################################
 ############################################
