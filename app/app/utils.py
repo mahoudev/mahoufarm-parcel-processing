@@ -336,7 +336,7 @@ def pipeline_ndvi(polygone: list[list]) -> schemas.processing_request.Processing
 
   print("========> Process completed")
   matrix = image_ndvi.tolist()
-  print(matrix, " sur ", type(matrix))
+
   print(image_ndvi)
 
   return schemas.processing_request.ProcessingOutput(

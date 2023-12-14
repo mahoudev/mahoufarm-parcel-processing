@@ -75,7 +75,7 @@ def notify_success(
 def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str, polygon_coordinates: list[list]):
     try:
         res = pipeline_ndvi(polygone=polygon_coordinates)
-        print("////////////////// OUTPUT NDVI ", res, type(res))
+        print("////////////////// OUTPUT NDVI ", type(res))
         
     except Exception as e:
         db = SessionLocal()
