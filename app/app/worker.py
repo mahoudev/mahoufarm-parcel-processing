@@ -52,8 +52,7 @@ def notify_success(
     internal_proc_id: int, 
     external_proc_id: int, 
     webhook_url: str, 
-    img_base64: str
-    
+    result: schemas.processing_request.ProcessingOutput
 ):
     print("Will notify success to ", webhook_url)
     res = requests.post(
@@ -62,7 +61,7 @@ def notify_success(
             'status': schemas.processing_request.ProcessingStatus.done.value,
             'external_id': external_proc_id,
             'id': internal_proc_id,
-            'image_base64': str(img_base64)
+            'result': result.model_dump()
         }),
         headers= {
             'Content-Type': 'application/json'
@@ -75,17 +74,15 @@ def notify_success(
 @celery_app.task(name="process_ndvi")
 def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str, polygon_coordinates: list[list]):
     try:
-        res, raw_ndvi = pipeline_ndvi(polygone=polygon_coordinates)
-        print("OUTPUT NDVI ", res, type(res))
-        print("/////////// ", res.model_dump())
-        print("/////////// ", res.model_dump_json())
+        res = pipeline_ndvi(polygone=polygon_coordinates)
+        print("////////////////// OUTPUT NDVI ", res, type(res))
         
     except Exception as e:
         db = SessionLocal()
         crud.processing_req.set_failed(db, internal_proc_id, error_msg=str(e))
         db.close()
         
-        notify_failed(internal_proc_id, external_proc_id, webhook_url, exception = e)
+        # notify_failed(internal_proc_id, external_proc_id, webhook_url, exception = e)
         raise e
     else:
         result_dict = res.model_dump()
@@ -95,9 +92,9 @@ def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
         crud.processing_req.set_success(
             db, 
             internal_proc_id, 
-            img_base64 = raw_ndvi, #res.image_base64, 
-            imagepath = os.path.basename(res.path), 
-            result= result_dict
+            img_base64 = res.image_base64,
+            matrix = res.matrix,
+            output=res.model_dump()
         )
         db.close()
 
@@ -105,7 +102,7 @@ def process_ndvi(internal_proc_id: int, external_proc_id: int, webhook_url: str,
             internal_proc_id, 
             external_proc_id, 
             webhook_url, 
-            img_base64=raw_ndvi #res.image_base64
+            result=res
         )
 
 
@@ -154,7 +151,7 @@ def process_evolution_ndvi(internal_proc_id: int, external_proc_id: int, webhook
         db = SessionLocal()
         crud.evolution_req.set_failed(db, internal_proc_id, error_msg=str(e))
         db.close()
-        
+
         notify_failed(internal_proc_id, external_proc_id, webhook_url, exception = e)
     else:
         result_dict = json.dumps({

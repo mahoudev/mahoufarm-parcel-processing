@@ -16,12 +16,12 @@ class CRUD(CRUDBase[ProcessingRequest, CreateProcessingRequest, UpdateProcessing
         db.add(req)
         db.commit()
 
-    def set_success(self, db: Session, id: int, img_base64: str, imagepath: str, result: dict):
+    def set_success(self, db: Session, id: int, img_base64: str, matrix: list[list], output: dict):
         req = self.get(db, id = id)
         req.status = ProcessingStatus.done.value
-        req.result = result
-        req.imagepath = imagepath
+        req.matrix = matrix
         req.image_base64 = img_base64
+        req.result = output
         db.add(req)
         db.commit()
             

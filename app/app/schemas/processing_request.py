@@ -20,7 +20,7 @@ class BaseProcessingRequest(BaseModel):
     task_id: Optional[str]
     error_msg: Optional[str]
     result: Optional[dict]
-    imagepath: Optional[str]
+    matrix: list[list] = []
 
 class CreateProcessingRequest(BaseProcessingRequest):
     id_initiator: int
@@ -32,7 +32,9 @@ class CreateProcessingRequest(BaseProcessingRequest):
 class UpdateProcessingRequest(BaseModel):
     status: Optional[ProcessingStatus]
     error_msg: Optional[str]
-
+    matrix: Optional[list[list]]
+    result: Optional[dict]
+    
 class APICreateProcessingRequest(CreateProcessingRequest):
     pass
 
@@ -44,3 +46,10 @@ class NDVIOutput(BaseModel):
   value: float
   image_base64: Optional[str]
   polygon_area: Optional[float]
+
+class ProcessingOutput(BaseModel):
+  matrix: list
+  mean_value: float
+  image_base64: Optional[str]
+  polygon_area: Optional[float]
+  used_tile_name: str

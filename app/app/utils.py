@@ -306,7 +306,7 @@ def from_base64_to_matrix(base64_string: str):
 
 from app import schemas
 
-def pipeline_ndvi(polygone: list[list]) -> (schemas.processing_request.NDVIOutput, str):
+def pipeline_ndvi(polygone: list[list]) -> schemas.processing_request.ProcessingOutput:
   """
   polygone : coordinate of area draw on the map
   """
@@ -321,7 +321,7 @@ def pipeline_ndvi(polygone: list[list]) -> (schemas.processing_request.NDVIOutpu
 
   print("========> Computing ndvi")
   image_ndvi, value_ndvi, X, Y = ndvi(polygone,tile_name)
-  raw_img = from_matrix_to_base64(image_ndvi)
+
   print("========> Computing area surface")
   superifcie_polygone = superficie(image_ndvi,X,Y)
   print("========> Saving file")
@@ -332,15 +332,20 @@ def pipeline_ndvi(polygone: list[list]) -> (schemas.processing_request.NDVIOutpu
 
   print("========> Removing useless files")
   delete_zips()
+  os.remove(imagepath)
 
   print("========> Process completed")
+  matrix = image_ndvi.tolist()
+  print(matrix, " sur ", type(matrix))
+  print(image_ndvi)
 
-  return schemas.processing_request.NDVIOutput(
-     image_base64=image_base64,
-     path=imagepath, 
-     value=value_ndvi, 
-     polygon_area=superifcie_polygone
-  ), raw_img
+  return schemas.processing_request.ProcessingOutput(
+    matrix=matrix,
+    image_base64=image_base64,
+    mean_value=value_ndvi, 
+    polygon_area=superifcie_polygone,
+    used_tile_name = tile_name
+  )
 
 # def pipeline_ndvi_evolution(last: np.ndarray, new: np.ndarray) -> (str, str):
 #   # last = np.array(scene1)
