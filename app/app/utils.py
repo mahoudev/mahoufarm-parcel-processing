@@ -289,8 +289,8 @@ def from_image_base64(image_path: str) -> str:
 
     # Convertir les données binaires en chaîne base64
     img_base64 = base64.b64encode(img_data).decode()
-
-    return img_base64
+    header = "data:image/jpeg;base64,"
+    return header + img_base64
 
 def from_matrix_to_base64(matrix) -> str:
     matrice_serialisee = pickle.dumps(matrix)
