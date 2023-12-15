@@ -1,4 +1,5 @@
 from typing import Generator
+import numpy as np
 
 from fastapi import FastAPI, Body, Request, HTTPException, Depends, APIRouter
 from fastapi.responses import JSONResponse
@@ -78,43 +79,19 @@ def create_process_ndvi(
 
     return JSONResponse({"id": proc.id})
 
-@router.post("/process-evolution/{process_type}")
+@router.post("/process-evolution/")
 def create_process_evolution_ndvi(
     request: Request,
-    process_type: schemas.processing_request.ProcessingType,
     db: Session = Depends(get_db),
-    id_user: int = Body(...),
-    request_identifier: int = Body(...),
-    image1: str = Body(...),
-    image2: str = Body(...),
-    webhook: str = Body(...),
+    matrix_1: list[list] = Body(...),
+    matrix_2: list[list] = Body(...),
 ):
-    if request.headers.get("Authorization") != settings.AUTH_KEY:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    proc = models.ProcessingEvolutionRequest(
-        id_initiator = id_user,
-        process_type = process_type.value,
-        image1 = image1,
-        image2 = image2,
-        status = schemas.processing_request.ProcessingStatus.pending.value
-    )
 
-    db.add(proc)
-    db.commit()
-
-    task = process_evolution_ndvi.delay(
-        internal_proc_id = proc.id, 
-        external_proc_id = request_identifier, 
-        webhook_url = webhook, 
-        first_ndvi_base64 = image1,
-        second_ndvi_base64 = image2
-    )
-
-    proc.task_id = task.task_id
-    db.add(proc)
-    db.commit()
-
-    return JSONResponse({"id": proc.id})
+    ndvi1 = np.array(matrix_1)
+    ndvi2 = np.array(matrix_2)
+    img_b64 = utils.pipeline_ndvi_evolution(ndvi1, ndvi2)
+    
+    return JSONResponse(img_b64)
 
 @router.get("/process/{req_id}")
 def read_process(

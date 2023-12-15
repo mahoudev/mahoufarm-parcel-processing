@@ -423,7 +423,7 @@ def pipeline_ndvi_evolution(last: np.ndarray, new: np.ndarray) -> (str, str):
 
   result_base64 = from_image_base64(abs_path)
 
-  return abs_path, result_base64
+  return result_base64
   
 
 ########################################### NDMI ########################################################
