@@ -34,7 +34,7 @@ from app.db.session import SessionLocal
 
 def notify_failed(internal_proc_id: int, external_proc_id: int, webhook_url: str, exception = None):
     print("Will notify failure to ", webhook_url)
-    res = requests.post(
+    res = requests.put(
         url = webhook_url,
         data = json.dumps({
             'status': schemas.processing_request.ProcessingStatus.failed.value,
@@ -55,7 +55,7 @@ def notify_success(
     result: schemas.processing_request.ProcessingOutput
 ):
     print("Will notify success to ", webhook_url)
-    res = requests.post(
+    res = requests.put(
         url = webhook_url,
         data = json.dumps({
             'status': schemas.processing_request.ProcessingStatus.done.value,
